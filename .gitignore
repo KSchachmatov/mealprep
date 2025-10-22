@@ -5,3 +5,4 @@ __pycache__/
 .venv/
 claude_client.py
 *.ipynb
+data/recipes_data.csv
