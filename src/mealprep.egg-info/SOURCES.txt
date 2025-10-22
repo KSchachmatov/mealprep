@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/mealprep/__init__.py
+src/mealprep/insert_vectors.py
+src/mealprep.egg-info/PKG-INFO
+src/mealprep.egg-info/SOURCES.txt
+src/mealprep.egg-info/dependency_links.txt
+src/mealprep.egg-info/requires.txt
+src/mealprep.egg-info/top_level.txt
+tests/test_meal_service.py

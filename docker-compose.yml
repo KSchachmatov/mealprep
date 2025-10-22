@@ -1,0 +1,43 @@
+name: mealprep
+
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: mealprep-postgres
+    environment:
+      - POSTGRES_DB=mealprep
+      - POSTGRES_USER=mealprep_user
+      - POSTGRES_PASSWORD=mealprep_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/container/path_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mealprep_user -d mealprep"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mealprep-app
+    environment:
+      - DATABASE_URL=postgresql://mealprep_user:mealprep_password@timescaledb:5432/mealprep
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./tests:/app/tests
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  timescaledb_data:
