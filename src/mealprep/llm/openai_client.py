@@ -30,7 +30,7 @@ class OpenAIClient:
         if not similar_recipes.empty:
             context = "Here are some recipe ideas from our database:\n\n"
             for i, recipe in similar_recipes.iterrows():
-                context += recipe["content"]
+                context += recipe["contents"]
 
         full_prompt = f"{context}\n{prompt}" if context else prompt
 
@@ -45,7 +45,7 @@ class OpenAIClient:
         for attempt in range(2):
             try:
                 completion = self.client.chat.completions.create(
-                    model="gpt-4.1-mini",
+                    model="gpt-5-mini",
                     messages=[
                         {
                             "role": "system",

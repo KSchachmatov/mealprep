@@ -24,7 +24,8 @@ class VectorStore:
             self.settings.database.service_url,
             self.vector_settings.table_name,
             self.vector_settings.embedding_dimensions,
-            time_partition_interval=self.vector_settings.time_partition_interval,
+            # time_partition_interval=self.vector_settings.time_partition_interval,
+            time_partition_interval=None,
         )
 
     def get_embedding(self, text: str) -> List[float]:
@@ -86,7 +87,6 @@ class VectorStore:
         limit: int = 5,
         metadata_filter: Union[dict, List[dict]] = None,
         predicates: Optional[client.Predicates] = None,
-        time_range: Optional[Tuple[datetime, datetime]] = None,
         return_dataframe: bool = True,
     ) -> Union[List[Tuple[Any, ...]], pd.DataFrame]:
         """
@@ -104,7 +104,6 @@ class VectorStore:
                 - Operators: ==, !=, >, >=, <, <=
                 - & is used to combine multiple predicates with AND operator.
                 - | is used to combine multiple predicates with OR operator.
-            time_range: A tuple of (start_date, end_date) to filter results by time.
             return_dataframe: Whether to return results as a DataFrame (default: True).
 
         Returns:
@@ -142,10 +141,6 @@ class VectorStore:
         if predicates:
             search_args["predicates"] = predicates
 
-        if time_range:
-            start_date, end_date = time_range
-            search_args["uuid_time_filter"] = client.UUIDTimeRange(start_date, end_date)
-
         results = self.vec_client.search(query_embedding, **search_args)
         elapsed_time = time.time() - start_time
 
@@ -171,7 +166,7 @@ class VectorStore:
         """
         # Convert results to DataFrame
         df = pd.DataFrame(
-            results, columns=["id", "metadata", "content", "embedding", "distance"]
+            results, columns=["id", "metadata", "contents", "embedding", "distance"]
         )
 
         # Expand metadata column

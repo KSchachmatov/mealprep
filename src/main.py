@@ -191,7 +191,6 @@ with col1:
 with col2:
     if st.button("📋 Load Last Plan", key="planloader_first_run"):
         loaded_plan = service.get_latest_plan()
-        print(loaded_plan)
         if loaded_plan:
             st.session_state.meal_plan = {
                 "meals": loaded_plan["meals"],
@@ -201,7 +200,16 @@ with col2:
         else:
             st.warning("No saved meal plans found")
 
+
 # Display meal plan with accept/reject per meal
+def _parse_list(raw_items, sep=","):
+    if isinstance(raw_items, str):
+        result = raw_items.split(sep)
+    else:
+        result = raw_items
+    return result
+
+
 if st.session_state.meal_plan:
     plan = st.session_state.meal_plan
 
@@ -225,14 +233,14 @@ if st.session_state.meal_plan:
             ):
                 if meal.get("ingredients"):
                     st.write("**Ingredients:**")
-                    print(meal["ingredients"])
-                    for ingredient in meal["ingredients"]:
-                        print(ingredient)
+                    ingredients = _parse_list(meal["ingredients"], sep=",")
+                    for ingredient in ingredients:
                         st.write(f"- {ingredient}")
                     st.write("")
 
                 st.write("**Recipe:**")
-                for i, step in enumerate(meal["recipe"], 1):
+                recipe = _parse_list(meal["recipe"], sep="|")
+                for i, step in enumerate(recipe, 1):
                     st.write(f"{i}. {step}")
 
         with col2:

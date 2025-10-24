@@ -1,9 +1,10 @@
 from datetime import datetime
 
 import pandas as pd
-from db.vector_store import VectorStore
+from mealprep.db.vector_store import VectorStore
 from timescale_vector.client import uuid_from_time
 from pathlib import Path
+from mealprep.helpers.utils import add_dietary_prefs
 
 # Initialize VectorStore
 vec = VectorStore()
@@ -14,6 +15,9 @@ vec = VectorStore()
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_PATH = PROJECT_ROOT / "data" / "recipes_data.csv"
 df = pd.read_csv(DATA_PATH)
+df = add_dietary_prefs(df)
+# Since we only want pescetarial recipes, filter out those with meat
+df.drop(df[df["with_meat"]].index, inplace=True)
 
 
 # Prepare data for insertion
@@ -25,7 +29,7 @@ def prepare_record(row):
     Returns:
         A dictionary with id, metadata, contents, and embedding
     """
-    content = f"Title: {row["title"]}\nIngredients: {row['ingredients']}\nRecipe: {row['directions']}"
+    content = f"Title: {row["title"]}\nIngredients: {row['ingredients']}\nRecipe: {row['directions']}\nDietary Preferences: {row['diet_pref']}"
     embedding = vec.get_embedding(content)
     return pd.Series(
         {
@@ -39,10 +43,9 @@ def prepare_record(row):
     )
 
 
-records_df = df.sample(n=100).apply(prepare_record, axis=1)
+records_df = df.sample(n=10000).apply(prepare_record, axis=1)
 
 
 # Create tables and insert data
 vec.create_tables()
-vec.create_index()  # DiskAnnIndex
 vec.upsert(records_df)

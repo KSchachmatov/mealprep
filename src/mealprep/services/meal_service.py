@@ -47,15 +47,21 @@ class MealService:
 
         if ingredients and len(ingredients) > 0:
             # USER HAS INGREDIENTS -> Use RAG to find similar recipes
-            similar_recipes_df = vec.search(ingredients, limit=5)
+            similar_recipes_df = vec.search(
+                ingredients,
+                limit=10,
+                metadata_filter={"dietary_preferences": dietary_preferences},
+            )
             context_type = "ingredient-based"
         else:
             # NO INGREDIENTS -> Either:
             # Option A: Get popular/diverse recipes
-            similar_recipes_df = self.db.get_diverse_recipes(limit=10)
+            similar_recipes_df = self.db.get_diverse_recipes(
+                limit=10, dietary_preferences=dietary_preferences
+            )
             context_type = "diverse-selection"
 
-            # Option B: Don't use RAG at all, let Claude be creative
+            # Option B: Don't use RAG at all
             # similar_recipes = []
             # context_type = "creative"
 
@@ -72,7 +78,6 @@ class MealService:
         suggestion = self.llm.get_meal_suggestion(
             prompt, temperature=1.0, similar_recipes=similar_recipes_df
         )
-        print(suggestion)
         return self.parse_meal_suggestion(suggestion)
 
     def add_meal(
@@ -224,34 +229,49 @@ class MealService:
         )
         if context_type == "ingredient-based":
             prompt = f"""
-            Image you are a private chef and you need to come up with meal suggestions every day. 
-            The recipes have to be easy to prepare and be ready under an hour. 
-            Suggest ONE meal using the available ingredients. You don't need to use all ingredients, but try to use as many as possible. 
-            If no ingredients are provided, suggest a random meal.
-            The meal should be suitable to serve {num_people} people. There are the following dietary preferences to consider: {diet_str}.
-            Assume that basic seasonings (salt, pepper, oil, vinegar, noodles, rice) are always available.
+            You are a creative private chef planning daily meals. 
+            Suggest ONE meal that is easy to prepare (ready in under 1 hour) and uses as many of the available ingredients as possible 
+            without being repetitive or too similar to recent meals.
 
-            Available ingredients: {", ".join(ingredients)}
+            ✦ The meal must be suitable for {num_people} people.
+            ✦ Dietary preferences: {diet_str}.
+            ✦ Basic stock of groceries (salt, pepper, oil, vinegar, noodles, rice) is always available.
+            ✦ Available ingredients: {", ".join(ingredients)}.
+            ✦ Show how much of the ingredients will be needed for {num_people} people.
+            ✦ Recent or excluded meals (avoid these and anything very similar in flavor, cuisine, main ingredient, or cooking style): 
+            {all_excluded_str}.
 
-            Recent meals, do NOT suggest these or some that are very similar: {all_excluded_str}
+            To ensure variety:
+            - Try to vary the **main protein**, **cuisine style**, or **preparation method** from excluded meals.
+            - Prefer a different dominant flavor profile (e.g., spicy vs mild, Asian vs Mediterranean, etc.).
+            - Avoid repeating similar sauces, spice mixes, or cooking bases.
 
-            Respond with the meal name and the recipe in form of steps to be executed. 
-            Return the response strictly in the following format: "meal_name: [Meal Name], ingredients: [Ingredient1, Ingredient2, ...], recipe: [Recipe Steps]"
+            Respond strictly in this structured format:
+            meal_name: [Meal Name]
+            ingredients: [Ingredient1, Ingredient2, ...]
+            recipe: [Step-by-step recipe]
             """
         else:
             prompt = f"""
-            Image you are a private chef and you need to come up with meal suggestions every day. 
-            The recipes have to be easy to prepare and be ready under an hour. 
-            Suggest ONE meal that is different from recent meals.
-            The meal should be suitable to serve {num_people} people. There are the following dietary preferences to consider: {diet_str}.
-            Assume that basic seasonings (salt, pepper, oil, vinegar, noodles, rice) are always available.
+            You are a creative private chef planning daily meals. 
+            Suggest ONE easy meal (ready in under 1 hour) that is **distinct** from recently served meals.
 
-            Recent meals, do NOT suggest these or some that are very similar: {all_excluded_str}
+            ✦ Suitable for {num_people} people.
+            ✦ Dietary preferences: {diet_str}.
+            ✦ Basic stock of groceries (salt, pepper, oil, vinegar, noodles, rice) is always available.
+            ✦ Show how much of the ingredients will be needed for {num_people} people.
+            ✦ Recent or excluded meals (avoid these and anything very similar in flavor, cuisine, main ingredient, or cooking style): 
+            {all_excluded_str}.
 
-            Respond with the meal name and the recipe in form of steps to be executed. 
-            Return the response strictly in the following format: "meal_name: [Meal Name], ingredients: [Ingredient1, Ingredient2, ...], recipe: [Recipe Steps]"
+            To ensure variety:
+            - Choose a different **cuisine**, **main ingredient**, or **cooking method** from excluded meals.
+            - Try to diversify in **flavors**, **textures**, and **meal types** (e.g., salad vs stew vs stir-fry).
+
+            Respond strictly in this structured format:
+            meal_name: [Meal Name]
+            ingredients: [Ingredient1, Ingredient2, ...]
+            recipe: [Step-by-step recipe]
             """
-
         return prompt
 
     def generate_meal_plan(
@@ -326,7 +346,7 @@ class MealService:
                 day_number=meal["day_number"],
                 ingredients=", ".join(meal.get("ingredients", [])),
                 meal=meal["meal_name"],
-                recipe="\n".join(meal["recipe"]),
+                recipe="|".join(meal["recipe"]),
                 accepted=False,
             )
 

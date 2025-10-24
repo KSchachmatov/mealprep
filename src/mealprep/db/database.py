@@ -130,12 +130,17 @@ class MealDatabase:
             cursor.execute("SELECT * FROM meals WHERE meal = %s", (meal_name,))
             return [dict(row) for row in cursor.fetchall()]
 
-    def get_diverse_recipes(self, limit: int = 10) -> pd.DataFrame:
+    def get_diverse_recipes(
+        self, limit: int = 10, dietary_preferences: str = None
+    ) -> pd.DataFrame:
         """Get diverse recipes (random sampling)."""
         with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
-                "SELECT title, ingredients, directions FROM recipes ORDER BY RANDOM() LIMIT %s",
-                (limit,),
+                "SELECT contents FROM recipes WHERE contents ILIKE %s ORDER BY RANDOM() LIMIT %s",
+                (
+                    f"%{dietary_preferences}%",
+                    limit,
+                ),
             )
             rows = cursor.fetchall()
             return pd.DataFrame([dict(row) for row in rows])
@@ -150,7 +155,7 @@ class MealDatabase:
         """Save a meal plan and return its ID."""
         with self.conn.cursor() as cursor:
             cursor.execute(
-                """INSERT INTO meal_plans (meal_name, num_days, num_people, dietary_preferences) 
+                """INSERT INTO meal_plans (name, num_days, num_people, dietary_preferences) 
                 VALUES (%s, %s, %s, %s) RETURNING id""",
                 (name, num_days, num_people, dietary_preferences),
             )
