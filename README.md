@@ -71,7 +71,7 @@ This project streamlines meal preparation with its core features:
 | 🧪 | **Testing**       | <ul><li>Includes unit tests using pytest to ensure code reliability and functionality.</li><li>Mocking used for external dependencies to isolate testing.</li></ul> |
 | ⚡️  | **Performance**   | <ul><li>Optimized queries for TimescaleDB to handle large datasets efficiently.</li><li>Utilizes asynchronous programming for improved responsiveness.</li></ul> |
 | 🛡️ | **Security**      | <ul><li>Follows best practices for handling sensitive data.</li><li>Uses Python-dotenv for managing environment variables securely.</li></ul> |
-| 📦 | **Dependencies**  | <ul><li>Dependencies managed using pip and listed in requires.txt and pyproject.toml.</li><li>Includes clear dependency versions to ensure compatibility.</li></ul> |
+| 📦 | **Dependencies**  | <ul><li>Dependencies managed using uv and listed in pyproject.toml.</li><li>Includes clear dependency versions to ensure compatibility.</li></ul> |
 
 ---
 
@@ -88,8 +88,22 @@ This project streamlines meal preparation with its core features:
     ├── pyproject.toml
     ├── src
     │   ├── main.py
-    │   ├── mealprep
-    │   └── mealprep.egg-info
+    │   ├── mealprep/
+	│	│	├── config/
+	│	│	│	├── settings.py
+	│	│	├── db/
+	│	│	│	├── database.py
+	│	│	│	├── models.py
+	│	│	│	└── vector_store.py
+	│	│	├── helpers/
+	│	│	│	└── utils.py
+	│	│	├── llm/
+	│	│	│	├── claude_client.py
+	│	│	│	└── openai_client.py
+	│	│	├── services/
+	│	│	│	├── meal_services.py
+	│	│	│	└── shopping_service.py
+    │   └── mealprep.egg-info/
     ├── tests
     │   ├── __init__.py
     │   └── test_meal_service.py
