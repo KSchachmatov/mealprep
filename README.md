@@ -79,7 +79,7 @@ uv sync
 python src/mealprep/insert_vectors.py
 ```
 Note: This may take several minutes as it processes and embeds 2M+ recipes. You can adjust the number of recipes you want to be loaded in the line:
-```bash
+```python
 records_df = df.sample(n=10000).apply(prepare_record, axis=1)
 ```
 
