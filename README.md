@@ -21,7 +21,7 @@ An intelligent meal planning application that uses RAG (Retrieval-Augmented Gene
 ## 🛠️ Tech Stack
 
 ### AI & ML
-- **LLM Integration**: Claude Sonnet 4.5 / OpenAI GPT-5
+- **LLM Integration**: OpenAI GPT-5-mini
 - **Embeddings**: Sentence Transformers (text-embedding-3-small)
 - **Vector Search**: pgvector with PostgreSQL
 - **RAG Pipeline**: Custom implementation with semantic similarity search
@@ -42,7 +42,8 @@ An intelligent meal planning application that uses RAG (Retrieval-Augmented Gene
 ### Prerequisites
 - Docker & Docker Compose
 - Python 3.12+
-- Anthropic or OpenAI API key
+- OpenAI API key
+- Kaggle Account (free)
 
 ### Installation
 
