@@ -12,7 +12,7 @@ An intelligent meal planning application that uses RAG (Retrieval-Augmented Gene
 - **Accept/reject workflow** - Generate alternative suggestions until you find the perfect meal
 
 ### Mode 2: Multi-Day Meal Planning
-- **Automated weekly meal plans** - Generate 1-14 day meal plans
+- **Automated weekly meal plans** - Generate X day meal plans
 - **Diverse meal selection** - Ensures variety across cuisines and cooking methods
 - **Individual meal management** - Accept or regenerate specific days
 - **Shopping list generation** - Automatically aggregates ingredients
@@ -21,8 +21,8 @@ An intelligent meal planning application that uses RAG (Retrieval-Augmented Gene
 ## 🛠️ Tech Stack
 
 ### AI & ML
-- **LLM Integration**: Claude Sonnet 4 / OpenAI GPT-4
-- **Embeddings**: Sentence Transformers (all-MiniLM-L6-v2)
+- **LLM Integration**: Claude Sonnet 4.5 / OpenAI GPT-5
+- **Embeddings**: Sentence Transformers (text-embedding-3-small)
 - **Vector Search**: pgvector with PostgreSQL
 - **RAG Pipeline**: Custom implementation with semantic similarity search
 
@@ -68,12 +68,21 @@ docker-compose up -d
 uv sync
 ```
 
-5. **Load recipe data** (optional - for RAG functionality)
+5. **Download recipe dataset** (required for RAG functionality)
+   - Download the [Recipe Dataset (2M+ recipes)](https://www.kaggle.com/datasets/wilmerarltstrmberg/recipe-dataset-over-2m) from Kaggle
+   - Extract and place `recipes_data.csv` in the `data/` folder
+   - Your structure should look like: `data/recipes_data.csv`
+
+6. **Load recipe data into vector database**
 ```bash
 python src/mealprep/insert_vectors.py
 ```
+Note: This may take several minutes as it processes and embeds 2M+ recipes. You can adjust the number of recipes you want to be loaded in the line:
+```bash
+records_df = df.sample(n=10000).apply(prepare_record, axis=1)
+```
 
-6. **Run the application**
+7. **Run the application**
 ```bash
 streamlit run src/main.py
 ```
