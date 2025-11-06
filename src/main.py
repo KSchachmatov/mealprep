@@ -53,7 +53,7 @@ st.write("**Available ingredients:**")
 # Display ingredient inputs dynamically
 for i in range(len(st.session_state.ingredients)):
     st.session_state.ingredients[i] = st.text_input(
-        f"Ingredient {i+1}",
+        f"Ingredient {i + 1}",
         value=st.session_state.ingredients[i],
         key=f"ingredient_{i}",
         label_visibility="collapsed",
@@ -80,13 +80,15 @@ active_ingredients = [
 # Suggest meal button
 if st.button("🚀 Suggest a Meal", type="primary"):
     if active_ingredients:
-        st.info(f"Looking for a meal with: {', '.join(active_ingredients)}")
-        parsed_meal = service.suggest_meal(
-            active_ingredients,
-            rejected_meals=st.session_state.rejected_meals,
-            num_people=num_people,
-            dietary_preferences=dietary_preferences if dietary_preferences else None,
-        )
+        with st.spinner(f"Looking for a meal with: {', '.join(active_ingredients)}"):
+            parsed_meal = service.suggest_meal(
+                active_ingredients,
+                rejected_meals=st.session_state.rejected_meals,
+                num_people=num_people,
+                dietary_preferences=dietary_preferences
+                if dietary_preferences
+                else None,
+            )
         st.session_state.current_meal = parsed_meal
         st.session_state.meal_saved = False
         st.rerun()
@@ -118,7 +120,7 @@ if st.session_state.current_meal:
                     f"Saved! You're cooking {st.session_state.current_meal['meal_name']} today."
                 )
                 service.add_meal(
-                    ingredients=st.session_state.current_meal["igredients"],
+                    ingredients=st.session_state.current_meal["ingredients"],
                     meal=st.session_state.current_meal["meal_name"],
                     recipe="\n".join(st.session_state.current_meal["recipe"]),
                     date=datetime.now(),
@@ -210,6 +212,18 @@ def _parse_list(raw_items, sep=","):
     return result
 
 
+def regenerate_shopping_list(meals):
+    """Regenerate shopping list from current meals."""
+    all_ingredients = []
+    for meal in meals:
+        ingredients = _parse_list(meal.get("ingredients", []), sep=",")
+        all_ingredients.extend(ingredients)
+
+    # Deduplicate and clean
+    shopping_list = list(set([ing.strip() for ing in all_ingredients if ing.strip()]))
+    return sorted(shopping_list)
+
+
 if st.session_state.meal_plan:
     plan = st.session_state.meal_plan
 
@@ -229,7 +243,7 @@ if st.session_state.meal_plan:
         with col1:
             with st.expander(
                 f"Day {meal['day_number']}: {meal['meal_name']}",
-                expanded=not st.session_state.meal_acceptances.get(idx, False),
+                expanded=False,  # not st.session_state.meal_acceptances.get(idx, False),
             ):
                 if meal.get("ingredients"):
                     st.write("**Ingredients:**")
@@ -254,6 +268,16 @@ if st.session_state.meal_plan:
                 with col_accept:
                     if st.button("✅", key=f"accept_{idx}"):
                         st.session_state.meal_acceptances[idx] = True
+                        # Optionally: only include accepted meals in shopping list
+                        accepted_meals = [
+                            meal
+                            for i, meal in enumerate(plan["meals"])
+                            if st.session_state.meal_acceptances.get(i, False)
+                            or i == idx
+                        ]
+                        st.session_state.meal_plan["shopping_list"] = (
+                            regenerate_shopping_list(accepted_meals)
+                        )
                         st.rerun()
                 with col_reject:
                     if st.button("🔄", key=f"regenerate_{idx}"):
@@ -267,18 +291,37 @@ if st.session_state.meal_plan:
                             )
                             new_meal["day_number"] = meal["day_number"]
                             st.session_state.meal_plan["meals"][idx] = new_meal
+
+                            # Update shopping list
+                            st.session_state.meal_plan["shopping_list"] = (
+                                regenerate_shopping_list(
+                                    st.session_state.meal_plan["meals"]
+                                )
+                            )
                             st.rerun()
 
     # Shopping list
     st.subheader("🛒 Shopping List")
-    if plan["shopping_list"]:
-        for item in plan["shopping_list"]:
-            st.write(f"- {item}")
+    if plan.get("shopping_list"):
+        # Group by category if you want (optional)
+        st.write(f"**Total items: {len(plan['shopping_list'])}**")
+
+        # Display in columns for better readability
+        col1, col2 = st.columns(2)
+        mid = len(plan["shopping_list"]) // 2
+
+        with col1:
+            for item in plan["shopping_list"][:mid]:
+                st.write(f"☐ {item}")
+
+        with col2:
+            for item in plan["shopping_list"][mid:]:
+                st.write(f"☐ {item}")
     else:
-        st.info("No shopping list generated")
+        st.info("No shopping list available. Generate or load a meal plan first.")
 
     # Action buttons
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("💾 Save Meal Plan", type="primary"):
             service.save_meal_plan_to_db(
@@ -305,4 +348,12 @@ if st.session_state.meal_plan:
         if st.button("🔄 Generate New Plan"):
             st.session_state.meal_plan = None
             st.session_state.meal_acceptances = {}
+            st.rerun()
+
+    with col4:
+        if st.button("🔄 Refresh Shopping List"):
+            st.session_state.meal_plan["shopping_list"] = regenerate_shopping_list(
+                st.session_state.meal_plan["meals"]
+            )
+            st.success("Shopping list updated!")
             st.rerun()

@@ -2,9 +2,10 @@ from openai import OpenAI
 import os
 import time
 import logging
-from mealprep.db.models import MealSuggestion
+from mealprep.db.models import MealSuggestion, MealPlan
 from mealprep.config.settings import get_api_key
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv()
 log = logging.getLogger(__name__)
@@ -23,24 +24,31 @@ class OpenAIClient:
         self,
         prompt: str,
         temperature: float = 0.7,
-        similar_recipes: list[dict] | None = None,
-    ) -> dict | None:
-        # Build context from similar recipes
+        similar_recipes: pd.DataFrame | None = None,
+        plan: bool = False,
+    ):
         context = ""
-        if not similar_recipes.empty:
-            context = "Here are some recipe ideas from our database:\n\n"
-            for i, recipe in similar_recipes.iterrows():
-                context += recipe["contents"]
+        if similar_recipes is not None and not similar_recipes.empty:
+            context = "\n".join(similar_recipes["contents"].tolist())
 
-        full_prompt = f"{context}\n{prompt}" if context else prompt
+        full_prompt = f"{context}\n\n{prompt}" if context else prompt
 
-        response_format = {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "meal_suggestion",
-                "schema": MealSuggestion.model_json_schema(),
-            },
-        }
+        if plan:
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "meal_plan",
+                    "schema": MealPlan.model_json_schema(),
+                },
+            }
+        else:
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "meal_suggestion",
+                    "schema": MealSuggestion.model_json_schema(),
+                },
+            }
 
         for attempt in range(2):
             try:
@@ -49,7 +57,7 @@ class OpenAIClient:
                     messages=[
                         {
                             "role": "system",
-                            "content": "You are a helpful private chef assistant who suggests meals.",
+                            "content": "You are a helpful private chef assistant.",
                         },
                         {"role": "user", "content": full_prompt},
                     ],
@@ -57,16 +65,17 @@ class OpenAIClient:
                     response_format=response_format,
                 )
 
-                meal_suggestion = MealSuggestion.model_validate_json(
-                    completion.choices[0].message.content
-                )
+                message = completion.choices[0].message.content
+                if plan:
+                    meal_plan = MealPlan.model_validate_json(message)
+                    parsed = meal_plan.as_list()
 
-                if not meal_suggestion.meal_name:
-                    log.warning("Meal suggestion missing name: %s", meal_suggestion)
+                    return parsed
 
-                return meal_suggestion.model_dump()
+                parsed = MealSuggestion.model_validate_json(message)
+                return parsed.model_dump()
 
-            except Exception as e:
+            except Exception:
                 log.exception(f"Attempt {attempt+1}: error parsing structured output")
                 time.sleep(1)
 

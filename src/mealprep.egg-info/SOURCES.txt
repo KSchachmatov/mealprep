@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 src/mealprep/__init__.py
 src/mealprep/insert_vectors.py
+src/mealprep/mcp_server.py
 src/mealprep.egg-info/PKG-INFO
 src/mealprep.egg-info/SOURCES.txt
 src/mealprep.egg-info/dependency_links.txt
