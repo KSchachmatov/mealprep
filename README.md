@@ -75,13 +75,15 @@ uv sync
    - Your structure should look like: `data/recipes_data.csv`
 
 6. **Load recipe data into vector database**
-```bash
-python src/mealprep/insert_vectors.py
-```
-Note: This may take several minutes as it processes and embeds 2M+ recipes. You can adjust the number of recipes you want to be loaded in the line:
+Note: This may take several minutes as it processes and embeds 2M+ recipes. You can adjust the number of recipes you want to be loaded by opening insert_vectors.py and change n=10000 to the size you want to be embedded:
 ```python
 records_df = df.sample(n=10000).apply(prepare_record, axis=1)
 ```
+Then run in your command line:
+```bash
+python src/mealprep/insert_vectors.py
+```
+To keep in mind: If you stop/restart your docker container the data will persist, if you shut it down with docker-compose down -v, it will delete the volume.
 
 7. **Run the application**
 ```bash
