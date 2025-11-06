@@ -75,6 +75,7 @@ uv sync
    - Your structure should look like: `data/recipes_data.csv`
 
 6. **Load recipe data into vector database**
+
 Note: This may take several minutes as it processes and embeds 2M+ recipes. You can adjust the number of recipes you want to be loaded by opening insert_vectors.py and change n=10000 to the size you want to be embedded:
 ```python
 records_df = df.sample(n=10000).apply(prepare_record, axis=1)
